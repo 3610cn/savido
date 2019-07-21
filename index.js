@@ -8,6 +8,8 @@ import _ from 'lodash';
 import axios from 'axios';
 import jsdom from 'jsdom';
 import Progress from 'cli-progress';
+import dayjs from 'dayjs';
+
 import { mainHtml, downloadHtml } from './html';
 import { makeArray } from './helper';
 
@@ -20,11 +22,26 @@ const instance = axios.create({
   })
 });
 
-const URL_SEEDS = [
-  'https://www.savido.net/sites/youporn',
+const formatUrl = site => `https://www.savido.net/sites/${site}`;
+
+const alreadyDownloads = (function() {
+  return shelljs.find(path.join(__dirname, 'videos', 'youporn'))
+    .filter(file => file.match(/\.mp4$/))
+    .map(file => file.slice(file.lastIndexOf('/') + 1));
+}());
+
+const isAlreadyDownloaded = (filename) => {
+  return alreadyDownloads.includes(filename);
+}
+
+const SITES = [
+  'youporn',
+  'pornhub',
 ];
 
-async function main(startUrl) {
+async function main(site) {
+  const startUrl = formatUrl(site);
+  console.log(`downloading ${startUrl}`)
   const { status, data } = await instance.get(startUrl);
   if (status === 200) {
     const dom = new JSDOM(data);
@@ -38,7 +55,7 @@ async function main(startUrl) {
         return prev.then(async () => {
           const finalUrl = url.resolve(startUrl, link);
           try {
-            await parseDownloadPage(finalUrl);
+            await parseDownloadPage(finalUrl, site);
           } catch(e) {
             console.log(e, finalUrl);
             return Promise.resolve();
@@ -50,7 +67,7 @@ async function main(startUrl) {
   }
 }
 
-async function parseDownloadPage(url) {
+async function parseDownloadPage(url, site) {
   const { status, data } = await instance.get(url);
   if (status === 200) {
     const dom = new JSDOM(data);
@@ -58,18 +75,32 @@ async function parseDownloadPage(url) {
     const videoUrl = document.querySelector('.container table')
       .querySelector('tr:last-child a')
       .getAttribute('href');
-    await downloadVideo(videoUrl);
+    await downloadVideo(videoUrl, site);
   }
 }
 
-async function downloadVideo(videoUrl) {
+async function downloadVideo(videoUrl, site) {
   if (!videoUrl) {
     return;
   }
   const pathname = url.parse(videoUrl).pathname.slice(1);
-  const dir = 'videos';
+  const date = dayjs().format('YYYY-MM-DD')
+  const dir = path.join(__dirname, 'videos', site, date);
+  const filename = pathname.slice(pathname.lastIndexOf('/') + 1);
+  if (isAlreadyDownloaded(filename)) {
+    console.log(`${filename} video downloaded before, ignore it`);
+    return;
+  }
+  if (filename.startsWith('240P')) {
+    console.log(`${filename} is laji, ignore it`);
+    return;
+  }
   ensure(dir);
-  const localPath = path.join(dir, pathname.slice(pathname.lastIndexOf('/') + 1));
+  const localPath = path.join(dir, filename);
+  if (fs.existsSync(localPath)) {
+    console.log(`${localPath} video already exists, ignore it`);
+    return;
+  }
   console.log(`downloading ${videoUrl} to ${localPath}`);
   const bar = new Progress.Bar({}, Progress.Presets.shades_classic);
   let progressStart = false;
@@ -106,4 +137,8 @@ function ensure(dir) {
   shelljs.mkdir('-p', dir);
 }
 
-main(URL_SEEDS[0]);
+(async function() {
+  for (let i = 0, len = SITES.length; i < len; i++) {
+    await main(SITES[i]);
+  }
+})();
