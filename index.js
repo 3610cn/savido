@@ -1,17 +1,15 @@
 import https from  'https';
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
 import url from 'url';
 
-import shelljs from 'shelljs';
 import _ from 'lodash';
 import axios from 'axios';
 import jsdom from 'jsdom';
 import Progress from 'cli-progress';
 import dayjs from 'dayjs';
 
-import { mainHtml, downloadHtml } from './html';
+import Cache from './Cache';
 import { makeArray } from './helper';
 
 const { JSDOM } = jsdom;
@@ -24,27 +22,7 @@ const instance = axios.create({
 });
 
 const formatUrl = site => `https://www.savido.net/sites/${site}`;
-
-const alreadyDownloads = (function() {
-  return shelljs.find(path.join(__dirname, 'videos', 'youporn'))
-    .filter(file => file.match(/\.mp4$/))
-    .map(file => file.slice(file.lastIndexOf('/') + 1));
-}());
-
-fs.writeFile(
-  path.join(__dirname, '.data'),
-  alreadyDownloads.join(os.EOL),
-  {
-    flag: 'a'
-  },
-  (err) => {
-    console.log(err);
-  }
-);
-
-const isAlreadyDownloaded = (filename) => {
-  return alreadyDownloads.includes(filename);
-}
+const cache = new Cache();
 
 const SITES = [
   'youporn',
@@ -99,7 +77,7 @@ async function downloadVideo(videoUrl, site) {
   const date = dayjs().format('YYYY-MM-DD')
   const dir = path.join(__dirname, 'videos', site, date);
   const filename = pathname.slice(pathname.lastIndexOf('/') + 1);
-  if (isAlreadyDownloaded(filename)) {
+  if (cache.isExists(filename)) {
     console.log(`${filename} video downloaded before, ignore it`);
     return;
   }
@@ -113,6 +91,7 @@ async function downloadVideo(videoUrl, site) {
     console.log(`${localPath} video already exists, ignore it`);
     return;
   }
+  cache.add(filename);
   console.log(`downloading ${videoUrl} to ${localPath}`);
   const bar = new Progress.Bar({}, Progress.Presets.shades_classic);
   let progressStart = false;
