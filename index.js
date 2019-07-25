@@ -1,5 +1,6 @@
 import https from  'https';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import url from 'url';
 
@@ -29,6 +30,17 @@ const alreadyDownloads = (function() {
     .filter(file => file.match(/\.mp4$/))
     .map(file => file.slice(file.lastIndexOf('/') + 1));
 }());
+
+fs.writeFile(
+  path.join(__dirname, '.data'),
+  alreadyDownloads.join(os.EOL),
+  {
+    flag: 'a'
+  },
+  (err) => {
+    console.log(err);
+  }
+);
 
 const isAlreadyDownloaded = (filename) => {
   return alreadyDownloads.includes(filename);
@@ -91,7 +103,7 @@ async function downloadVideo(videoUrl, site) {
     console.log(`${filename} video downloaded before, ignore it`);
     return;
   }
-  if (filename.startsWith('240P')) {
+  if (filename.startsWith('240P') || filename.startsWith('480P')) {
     console.log(`${filename} is laji, ignore it`);
     return;
   }
@@ -133,12 +145,8 @@ async function downloadVideo(videoUrl, site) {
   })
 }
 
-function ensure(dir) {
-  shelljs.mkdir('-p', dir);
-}
-
 (async function() {
   for (let i = 0, len = SITES.length; i < len; i++) {
-    await main(SITES[i]);
+    // await main(SITES[i]);
   }
 })();
