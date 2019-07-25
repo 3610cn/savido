@@ -1,14 +1,14 @@
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import shelljs from 'shelljs';
-import { ensure } from './helper';
+
+const ShellString = shelljs.ShellString;
+
+const DATA_PATH = path.join(__dirname, '.data');
 
 const alreadyDownloads = () => {
-  const videosPath = path.join(__dirname, 'videos');
-  ensure(videosPath);
-  const files = shelljs.find(videosPath);
-  return files.filter(file => file.match(/\.mp4$/))
-    .map(file => file.slice(file.lastIndexOf('/') + 1));
+  return shelljs.cat(DATA_PATH).split(os.EOL).filter(Boolean);
 };
 
 
@@ -24,15 +24,6 @@ export default class Cache {
 
   add(filename) {
     this.data.push(filename);
-    fs.writeFile(
-      path.join(__dirname, '.data'),
-      filename,
-      {
-        flag: 'a'
-      },
-      (err) => {
-        console.log(err);
-      }
-    );
+    new ShellString(os.EOL + filename).toEnd(DATA_PATH);
   }
 }
