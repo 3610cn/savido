@@ -9,6 +9,7 @@ import jsdom from 'jsdom';
 import Progress from 'cli-progress';
 import dayjs from 'dayjs';
 
+import { ensure } from './helper';
 import Cache from './Cache';
 import { makeArray } from './helper';
 
@@ -24,10 +25,16 @@ const instance = axios.create({
 const formatUrl = site => `https://www.savido.net/sites/${site}`;
 const cache = new Cache();
 
-const SITES = [
-  'youporn',
-  'pornhub',
-];
+const ORDER_DESC = 0;
+const ORDER_ASC = 1;
+
+const SITES = {
+  'youporn': ORDER_ASC,
+  'pornhub': ORDER_ASC,
+  //  'xhamster': ORDER_ASC,
+  //  'xnxx': ORDER_DESC,
+  //  'xvideos': ORDER_DESC,
+};
 
 async function main(site) {
   const startUrl = formatUrl(site);
@@ -62,8 +69,9 @@ async function parseDownloadPage(url, site) {
   if (status === 200) {
     const dom = new JSDOM(data);
     const document = dom.window.document;
+    const selector = SITES[site] === ORDER_ASC ? 'tr:last-child a' : 'tr:first-child a';
     const videoUrl = document.querySelector('.container table')
-      .querySelector('tr:last-child a')
+      .querySelector(selector)
       .getAttribute('href');
     await downloadVideo(videoUrl, site);
   }
@@ -125,7 +133,8 @@ async function downloadVideo(videoUrl, site) {
 }
 
 (async function() {
-  for (let i = 0, len = SITES.length; i < len; i++) {
-    // await main(SITES[i]);
+  const sites = Object.keys(SITES);
+  for (let i = 0, len = sites.length; i < len; i++) {
+    await main(sites[i]);
   }
 })();
