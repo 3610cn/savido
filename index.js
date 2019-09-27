@@ -132,9 +132,38 @@ async function downloadVideo(videoUrl, site) {
   })
 }
 
+async function parsePornhub(keyword) {
+  const startUrl = `https://www.pornhub.com/video/search?search=${encodeURIComponent(keeyword)}&page=1`;
+  const { status, data } = await instance.get(startUrl);
+  if (status === 200) {
+    const dom = new JSDOM(data);
+    const document = dom.window.document;
+    const links = makeArray(document.querySelectorAll('.videoPreviewBg a[href^="/view_video.php"]'))
+      .map(elem => elem.getAttribute('href'));
+    console.log(links);
+    await _.reduce(
+      links,
+      (prev, link) => {
+        return prev.then(async () => {
+          let finalUrl = url.resolve(startUrl, link);
+          finalUrl = `https://www.savido.net/download?url=${encodeURIComponent(finalUrl)}`;
+          try {
+            await parseDownloadPage(finalUrl, 'pornhub');
+          } catch(e) {
+            console.log(e, finalUrl);
+            return Promise.resolve();
+          }
+        });
+      },
+      Promise.resolve(),
+    );
+  }
+}
+
 (async function() {
   const sites = Object.keys(SITES);
   for (let i = 0, len = sites.length; i < len; i++) {
-    await main(sites[i]);
+    // await main(sites[i]);
   }
+  await parsePornhub('自拍');
 })();
