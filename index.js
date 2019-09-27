@@ -26,8 +26,8 @@ const formatUrl = site => `https://www.savido.net/sites/${site}`;
 const cache = new Cache();
 
 const SITES = {
-  'youporn': ORDER_ASC,
-  'pornhub': ORDER_ASC,
+  'youporn': true,
+  'pornhub': true,
   //  'xhamster': ORDER_ASC,
   //  'xnxx': ORDER_DESC,
   //  'xvideos': ORDER_DESC,
@@ -68,8 +68,9 @@ async function parseDownloadPage(url, site) {
     const dom = new JSDOM(data);
     const document = dom.window.document;
     // 所有下载表格的行
-    const trs = document.querySelector('.container table tr');
-    const tr = makeArray(trs).filter(item => parseInt(item.innerText, 10) >= 720);
+    const trs = document.querySelectorAll('.container table tr');
+    const tr = Array.from(trs).filter(item => parseInt(item.textContent, 10) >= 720);
+    console.log(`${tr.length}Got`);
     if (tr.length) {
       const videoUrl = tr[0].querySelector('a')
         .getAttribute('href');
@@ -141,7 +142,6 @@ async function parsePornhub(keyword) {
     const document = dom.window.document;
     const links = makeArray(document.querySelectorAll('.videoPreviewBg a[href^="/view_video.php"]'))
       .map(elem => elem.getAttribute('href'));
-    console.log(links);
     await _.reduce(
       links,
       (prev, link) => {
