@@ -134,7 +134,7 @@ async function downloadVideo(videoUrl, site) {
 }
 
 async function parsePornhub(keyword) {
-  const startUrl = `https://www.pornhub.com/video/search?search=${encodeURIComponent(keeyword)}&page=1&hd=1`;
+  const startUrl = `https://www.pornhub.com/video/search?search=${encodeURIComponent(keyword)}&page=1&hd=1`;
   const { status, data } = await instance.get(startUrl);
   if (status === 200) {
     const dom = new JSDOM(data);
