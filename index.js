@@ -12,6 +12,7 @@ import dayjs from 'dayjs';
 import { ensure } from './helper';
 import Cache from './Cache';
 import { makeArray } from './helper';
+import minimist from 'minimist';
 
 const { JSDOM } = jsdom;
 
@@ -24,14 +25,6 @@ const instance = axios.create({
 
 const formatUrl = site => `https://www.savido.net/sites/${site}`;
 const cache = new Cache();
-
-const SITES = {
-  'youporn': true,
-  'pornhub': true,
-  //  'xhamster': ORDER_ASC,
-  //  'xnxx': ORDER_DESC,
-  //  'xvideos': ORDER_DESC,
-};
 
 async function main(site) {
   const startUrl = formatUrl(site);
@@ -134,8 +127,7 @@ async function downloadVideo(videoUrl, site) {
   })
 }
 
-async function parsePornhub(keyword) {
-  const startUrl = `https://www.pornhub.com/video/search?search=${encodeURIComponent(keyword)}&page=1&hd=1`;
+async function parsePornhub(startUrl) {
   const { status, data } = await instance.get(startUrl);
   if (status === 200) {
     const dom = new JSDOM(data);
@@ -161,10 +153,21 @@ async function parsePornhub(keyword) {
   }
 }
 
+let { startUrl, site } = minimist(process.argv.slice(2));
+
+if (site === undefined) {
+  site = [];
+} else if (!Array.isArray(site)) {
+  site = [site];
+}
+
+console.log(site, startUrl);
+
 (async function() {
-  const sites = Object.keys(SITES);
-  for (let i = 0, len = sites.length; i < len; i++) {
-    // await main(sites[i]);
+  for (let i = 0, len = site.length; i < len; i++) {
+    await main(site[i]);
   }
-  await parsePornhub('自拍');
+  if (startUrl) {
+    await parsePornhub(startUrl);
+  }
 })();
