@@ -25,9 +25,6 @@ const instance = axios.create({
 const formatUrl = site => `https://www.savido.net/sites/${site}`;
 const cache = new Cache();
 
-const ORDER_DESC = 0;
-const ORDER_ASC = 1;
-
 const SITES = {
   'youporn': ORDER_ASC,
   'pornhub': ORDER_ASC,
@@ -65,15 +62,19 @@ async function main(site) {
 }
 
 async function parseDownloadPage(url, site) {
+  console.log('downlading:', url);
   const { status, data } = await instance.get(url);
   if (status === 200) {
     const dom = new JSDOM(data);
     const document = dom.window.document;
-    const selector = SITES[site] === ORDER_ASC ? 'tr:last-child a' : 'tr:first-child a';
-    const videoUrl = document.querySelector('.container table')
-      .querySelector(selector)
-      .getAttribute('href');
-    await downloadVideo(videoUrl, site);
+    // 所有下载表格的行
+    const trs = document.querySelector('.container table tr');
+    const tr = makeArray(trs).filter(item => parseInt(item.innerText, 10) >= 720);
+    if (tr.length) {
+      const videoUrl = tr[0].querySelector('a')
+        .getAttribute('href');
+      await downloadVideo(videoUrl, site);
+    }
   }
 }
 
@@ -133,7 +134,7 @@ async function downloadVideo(videoUrl, site) {
 }
 
 async function parsePornhub(keyword) {
-  const startUrl = `https://www.pornhub.com/video/search?search=${encodeURIComponent(keeyword)}&page=1`;
+  const startUrl = `https://www.pornhub.com/video/search?search=${encodeURIComponent(keeyword)}&page=1&hd=1`;
   const { status, data } = await instance.get(startUrl);
   if (status === 200) {
     const dom = new JSDOM(data);
