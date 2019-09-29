@@ -9,9 +9,8 @@ import jsdom from 'jsdom';
 import Progress from 'cli-progress';
 import dayjs from 'dayjs';
 
-import { ensure } from './helper';
+import { ensure, generateUrls, makeArray } from './helper';
 import Cache from './Cache';
-import { makeArray } from './helper';
 import minimist from 'minimist';
 
 const { JSDOM } = jsdom;
@@ -155,11 +154,23 @@ async function parsePornhub(startUrl) {
 
 let { startUrl, site } = minimist(process.argv.slice(2));
 
-if (site === undefined) {
-  site = [];
-} else if (!Array.isArray(site)) {
-  site = [site];
+function normalizeArg(arg) {
+  let result = arg;
+  if (result === undefined) {
+    result = [];
+  } else if (!Array.isArray(result)) {
+    result = [result];
+  }
+  result = result.reduce(
+    (total, item) => total.concat(generateUrls(item)),
+    [],
+  );
+  return result;
 }
+
+site = normalizeArg(site);
+startUrl = normalizeArg(startUrl);
+
 
 console.log(site, startUrl);
 
@@ -167,7 +178,7 @@ console.log(site, startUrl);
   for (let i = 0, len = site.length; i < len; i++) {
     await main(site[i]);
   }
-  if (startUrl) {
-    await parsePornhub(startUrl);
+  for (let i = 0, len = startUrl.length; i < len; i++) {
+    await parsePornhub(startUrl[i]);
   }
 })();
