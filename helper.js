@@ -9,6 +9,7 @@ export function ensure(dir) {
 }
 
 export function generateUrls(seed)  {
+  console.log(seed)
   const result = [];
   const reg = /\{(\d+),\s*(\d+)\}/;
   const match = seed.match(reg);
@@ -19,8 +20,8 @@ export function generateUrls(seed)  {
     }
     return result;
   }
-  return [seed];
+  return seed.split(',');
 }
 
-// const a = generateUrls('http://wqweqwe.com/?page={1, 100}')
+// const a = generateUrls('http://wqweqwe.com/?page={1, 3}')
 // console.log(a);

@@ -152,7 +152,7 @@ async function parsePornhub(startUrl) {
   }
 }
 
-let { startUrl, site } = minimist(process.argv.slice(2));
+let { startUrl, site, keyword } = minimist(process.argv.slice(2));
 
 function normalizeArg(arg) {
   let result = arg;
@@ -170,9 +170,14 @@ function normalizeArg(arg) {
 
 site = normalizeArg(site);
 startUrl = normalizeArg(startUrl);
-
-
-console.log(site, startUrl);
+keyword = normalizeArg(keyword);
+// 处理关键词，转换成url
+if (startUrl.length === 0 && keyword.length > 0) {
+  startUrl = keyword.map(
+    item => `https://www.pornhub.com/video/search?search=${encodeURIComponent(item)}&hd=1&page={1, 10}`,
+  )
+  startUrl = normalizeArg(startUrl);
+}
 
 (async function() {
   for (let i = 0, len = site.length; i < len; i++) {
