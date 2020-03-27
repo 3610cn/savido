@@ -9,7 +9,6 @@ export function ensure(dir) {
 }
 
 export function generateUrls(seed)  {
-  console.log(seed)
   const result = [];
   const reg = /\{(\d+),\s*(\d+)\}/;
   const match = seed.match(reg);

@@ -8,10 +8,11 @@ import axios from 'axios';
 import jsdom from 'jsdom';
 import Progress from 'cli-progress';
 import dayjs from 'dayjs';
+import minimist from 'minimist';
 
 import { ensure, generateUrls, makeArray } from './helper';
 import Cache from './Cache';
-import minimist from 'minimist';
+import logger from './logger';
 
 const { JSDOM } = jsdom;
 
@@ -27,7 +28,7 @@ const cache = new Cache();
 
 async function main(site) {
   const startUrl = formatUrl(site);
-  console.log(`downloading ${startUrl}`)
+  logger.info(`downloading ${startUrl}`)
   const { status, data } = await instance.get(startUrl);
   if (status === 200) {
     const dom = new JSDOM(data);
@@ -43,7 +44,7 @@ async function main(site) {
           try {
             await parseDownloadPage(finalUrl, site);
           } catch(e) {
-            console.log(e, finalUrl);
+            logger.error(`Error Message: ${e.message} | url: ${finalUrl}`);
             return Promise.resolve();
           }
         });
@@ -54,15 +55,16 @@ async function main(site) {
 }
 
 async function parseDownloadPage(url, site) {
-  console.log('downlading:', url);
+  logger.info(`downlading: ${url}`);
   const { status, data } = await instance.get(url);
   if (status === 200) {
     const dom = new JSDOM(data);
     const document = dom.window.document;
     // 所有下载表格的行
     const trs = document.querySelectorAll('.container table tr');
+    console.log(trs, trs.length);
     const tr = Array.from(trs).filter(item => parseInt(item.textContent, 10) >= 720);
-    console.log(`${tr.length}Got`);
+    logger.info(`${tr.length}Got`);
     if (tr.length) {
       const videoUrl = tr[0].querySelector('a')
         .getAttribute('href');
@@ -80,21 +82,21 @@ async function downloadVideo(videoUrl, site) {
   const dir = path.join(__dirname, 'videos', site, date);
   const filename = pathname.slice(pathname.lastIndexOf('/') + 1);
   if (cache.isExists(filename)) {
-    console.log(`${filename} video downloaded before, ignore it`);
+    logger.warn(`${filename} video downloaded before, ignore it`);
     return;
   }
   if (filename.startsWith('240P') || filename.startsWith('480P')) {
-    console.log(`${filename} is laji, ignore it`);
+    logger.warn(`${filename} is laji, ignore it`);
     return;
   }
   ensure(dir);
   const localPath = path.join(dir, filename);
   if (fs.existsSync(localPath)) {
-    console.log(`${localPath} video already exists, ignore it`);
+    logger.warn(`${localPath} video already exists, ignore it`);
     return;
   }
   cache.add(filename);
-  console.log(`downloading ${videoUrl} to ${localPath}`);
+  logger.info(`downloading ${videoUrl} to ${localPath}`);
   const bar = new Progress.Bar({}, Progress.Presets.shades_classic);
   let progressStart = false;
   const { data } = await instance.get(
@@ -142,7 +144,7 @@ async function parsePornhub(startUrl) {
           try {
             await parseDownloadPage(finalUrl, 'pornhub');
           } catch(e) {
-            console.log(e, finalUrl);
+            logger.error(`Error Message: ${e.message} | url: ${finalUrl}`);
             return Promise.resolve();
           }
         });
@@ -152,7 +154,7 @@ async function parsePornhub(startUrl) {
   }
 }
 
-let { startUrl, site, keyword } = minimist(process.argv.slice(2));
+let { startUrl, site, keyword, pornhubUrl } = minimist(process.argv.slice(2));
 
 function normalizeArg(arg) {
   let result = arg;
@@ -171,6 +173,8 @@ function normalizeArg(arg) {
 site = normalizeArg(site);
 startUrl = normalizeArg(startUrl);
 keyword = normalizeArg(keyword);
+pornhubUrl = normalizeArg(pornhubUrl);
+
 // 处理关键词，转换成url
 if (startUrl.length === 0 && keyword.length > 0) {
   startUrl = keyword.map(
@@ -185,5 +189,9 @@ if (startUrl.length === 0 && keyword.length > 0) {
   }
   for (let i = 0, len = startUrl.length; i < len; i++) {
     await parsePornhub(startUrl[i]);
+  }
+  for (let i = 0, len = pornhubUrl.length; i < len; i++) {
+    const finalUrl = `https://www.savido.net/download?url=${encodeURIComponent(pornhubUrl[i])}`;
+    await parseDownloadPage(finalUrl, 'pornhub');
   }
 })();
