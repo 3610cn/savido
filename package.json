@@ -17,7 +17,7 @@
     "dayjs": "^1.8.15",
     "jsdom": "^15.1.1",
     "lodash": "^4.17.15",
-    "minimist": "^1.2.0",
+    "minimist": "^1.2.3",
     "mysql-promise": "^5.0.0",
     "shelljs": "^0.8.3",
     "winston": "^3.2.1"
